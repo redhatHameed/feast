@@ -85,6 +85,7 @@ from feast.protos.feast.types.Value_pb2 import RepeatedValue, Value
 from feast.repo_config import RepoConfig, load_repo_config
 from feast.repo_contents import RepoContents
 from feast.saved_dataset import SavedDataset, SavedDatasetStorage, ValidationReference
+from feast.security_manager import AuthzedAction, require_permissions
 from feast.stream_feature_view import StreamFeatureView
 from feast.version import get_version
 
@@ -204,6 +205,7 @@ class FeatureStore:
 
         self._registry = registry
 
+    @require_permissions(resource="entities", actions=AuthzedAction.READ)
     def list_entities(
         self, allow_cache: bool = False, tags: Optional[dict[str, str]] = None
     ) -> List[Entity]:
@@ -234,6 +236,7 @@ class FeatureStore:
             if entity.name != DUMMY_ENTITY_NAME or not hide_dummy_entity
         ]
 
+    @require_permissions(resource="feature-services", actions=AuthzedAction.READ)
     def list_feature_services(
         self, tags: Optional[dict[str, str]] = None
     ) -> List[FeatureService]:
@@ -372,6 +375,7 @@ class FeatureStore:
             stream_feature_views.append(sfv)
         return stream_feature_views
 
+    @require_permissions(resource="on-demand-feature-views", actions=AuthzedAction.READ)
     def list_on_demand_feature_views(
         self, allow_cache: bool = False, tags: Optional[dict[str, str]] = None
     ) -> List[OnDemandFeatureView]:
@@ -400,6 +404,7 @@ class FeatureStore:
         """
         return self._list_stream_feature_views(allow_cache, tags=tags)
 
+    @require_permissions(resource="data-sources", actions=AuthzedAction.READ)
     def list_data_sources(
         self, allow_cache: bool = False, tags: Optional[dict[str, str]] = None
     ) -> List[DataSource]:
@@ -453,6 +458,7 @@ class FeatureStore:
         """
         return self._registry.get_feature_service(name, self.project, allow_cache)
 
+    @require_permissions(resource="feature-views", actions=AuthzedAction.READ)
     def get_feature_view(
         self, name: str, allow_registry_cache: bool = False
     ) -> FeatureView:
@@ -1013,6 +1019,7 @@ class FeatureStore:
         self._get_provider().teardown_infra(self.project, tables, entities)
         self._registry.teardown()
 
+    @require_permissions(resource="features", actions=AuthzedAction.READ)
     def get_historical_features(
         self,
         entity_df: Union[pd.DataFrame, str],

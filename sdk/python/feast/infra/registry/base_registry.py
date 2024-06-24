@@ -16,7 +16,7 @@ import warnings
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from google.protobuf.json_format import MessageToJson
 from google.protobuf.message import Message
@@ -24,10 +24,13 @@ from google.protobuf.message import Message
 from feast.base_feature_view import BaseFeatureView
 from feast.data_source import DataSource
 from feast.entity import Entity
+from feast.feast_object import FeastObject
 from feast.feature_service import FeatureService
-from feast.feature_view import FeatureView
+from feast.feature_view import DUMMY_ENTITY, FeatureView
 from feast.infra.infra_object import Infra
 from feast.on_demand_feature_view import OnDemandFeatureView
+from feast.permissions.action import AuthzedAction
+from feast.permissions.security_manager import assert_permissions
 from feast.project_metadata import ProjectMetadata
 from feast.protos.feast.core.Entity_pb2 import Entity as EntityProto
 from feast.protos.feast.core.FeatureService_pb2 import (
@@ -54,6 +57,11 @@ class BaseRegistry(ABC):
     feature views, and data sources).
     """
 
+    def _assert_permissions(
+        self, resource: FeastObject, actions: Union[AuthzedAction, List[AuthzedAction]]
+    ):
+        assert_permissions(resource=resource, actions=actions)
+
     # Entity operations
     @abstractmethod
     def apply_entity(self, entity: Entity, project: str, commit: bool = True):
@@ -65,6 +73,8 @@ class BaseRegistry(ABC):
             project: Feast project that this entity belongs to
             commit: Whether the change should be persisted immediately
         """
+        self._assert_permissions(resource=entity, actions=[AuthzedAction.CREATE])
+
         raise NotImplementedError
 
     @abstractmethod
@@ -77,6 +87,9 @@ class BaseRegistry(ABC):
             project: Feast project that this entity belongs to
             commit: Whether the change should be persisted immediately
         """
+        entity = Entity(name=name)
+        self._assert_permissions(resource=entity, actions=[AuthzedAction.DELETE])
+
         raise NotImplementedError
 
     @abstractmethod
@@ -93,6 +106,9 @@ class BaseRegistry(ABC):
             Returns either the specified entity, or raises an exception if
             none is found
         """
+        entity = Entity(name=name)
+        self._assert_permissions(resource=entity, actions=[AuthzedAction.READ])
+
         raise NotImplementedError
 
     @abstractmethod
@@ -113,6 +129,8 @@ class BaseRegistry(ABC):
         Returns:
             List of entities
         """
+        self._assert_permissions(resource=DUMMY_ENTITY, actions=[AuthzedAction.READ])
+
         raise NotImplementedError
 
     # Data source operations
@@ -128,6 +146,8 @@ class BaseRegistry(ABC):
             project: Feast project that this data source belongs to
             commit: Whether to immediately commit to the registry
         """
+        self._assert_permissions(resource=data_source, actions=[AuthzedAction.CREATE])
+
         raise NotImplementedError
 
     @abstractmethod
@@ -140,6 +160,9 @@ class BaseRegistry(ABC):
             project: Feast project that this data source belongs to
             commit: Whether the change should be persisted immediately
         """
+        # data_source = DataSource(name=name)
+        # self._assert_permissions(resource=data_source, actions=[AuthzedAction.DELETE])
+
         raise NotImplementedError
 
     @abstractmethod
@@ -157,6 +180,9 @@ class BaseRegistry(ABC):
         Returns:
             Returns either the specified data source, or raises an exception if none is found
         """
+        # data_source = DataSource(name=name)
+        # self._assert_permissions(resource=data_source, actions=[AuthzedAction.READ])
+
         raise NotImplementedError
 
     @abstractmethod
@@ -177,6 +203,9 @@ class BaseRegistry(ABC):
         Returns:
             List of data sources
         """
+        # data_source = DataSource(name="sample_data_source")
+        # self._assert_permissions(resource=data_source, actions=[AuthzedAction.READ])
+
         raise NotImplementedError
 
     # Feature service operations
@@ -191,6 +220,10 @@ class BaseRegistry(ABC):
             feature_service: A feature service that will be registered
             project: Feast project that this entity belongs to
         """
+        self._assert_permissions(
+            resource=feature_service, actions=[AuthzedAction.CREATE]
+        )
+
         raise NotImplementedError
 
     @abstractmethod
@@ -203,6 +236,7 @@ class BaseRegistry(ABC):
             project: Feast project that this feature service belongs to
             commit: Whether the change should be persisted immediately
         """
+
         raise NotImplementedError
 
     @abstractmethod
@@ -221,6 +255,7 @@ class BaseRegistry(ABC):
             Returns either the specified feature service, or raises an exception if
             none is found
         """
+
         raise NotImplementedError
 
     @abstractmethod
@@ -241,6 +276,7 @@ class BaseRegistry(ABC):
         Returns:
             List of feature services
         """
+
         raise NotImplementedError
 
     # Feature view operations
@@ -256,6 +292,7 @@ class BaseRegistry(ABC):
             project: Feast project that this feature view belongs to
             commit: Whether the change should be persisted immediately
         """
+
         raise NotImplementedError
 
     @abstractmethod
